@@ -9,37 +9,21 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "sprite_animation_manager.h"
+
 #define MAX_SPRITES   14
 #define SCREEN_WIDTH  400
 #define SCREEN_HEIGHT 240
 
-static C2D_SpriteSheet spriteSheet;
+static object_2d_info_t reimu_object;
 static C2D_Sprite reimu_sprite[MAX_SPRITES];
+static sprite_pivot_t reimu_pivot = {0.0f, 0.0f};
+static sprite_position_t reimu_position = {0.0f, 0.0f};
+static float reimu_roation = 0.0f;
 static uint64_t sprite_refresh_ms_time = 30;
 
-//---------------------------------------------------------------------------------
-static void initialize_reimu_sprite(C2D_Sprite* sprites) {
-//---------------------------------------------------------------------------------	
-	for (size_t index = 0; index < MAX_SPRITES; index++) {
-		C2D_SpriteFromSheet(&sprites[index], spriteSheet, index);
-		C2D_SpriteSetCenter(&sprites[index], 0.0f, 0.0f);
-		C2D_SpriteSetPos(&sprites[index], 0, 0);
-		C2D_SpriteSetRotation(&sprites[index], 0);
-	}
-}
-//---------------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------------
-int main(int argc, char* argv[]) {
-//---------------------------------------------------------------------------------
-	// Eslapsed time calculation values
-	uint64_t start;
-	uint64_t stop;
-	uint64_t ms_time_elapsed = 0;
-
-	// Animation loop sprite counter value
-	int current_frame_index = 0;
-
+int main(int argc, char* argv[]) 
+{
 	// Init libs
 	romfsInit();
 	gfxInitDefault();
@@ -51,19 +35,18 @@ int main(int argc, char* argv[]) {
 	// Create screens
 	C3D_RenderTarget* top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 
-	// Load graphics
-	spriteSheet = C2D_SpriteSheetLoad("romfs:/gfx/sprites.t3x");
-	if (spriteSheet == NULL) {
-		svcBreak(USERBREAK_PANIC);
-	}
-
-	// Initialize player sprites
-	initialize_reimu_sprite(reimu_sprite);
+	// Load graphics and initialize player sprites
+	initialize_object(&reimu_object, \
+					  reimu_sprite,	\
+					  "romfs:/gfx/sprites.t3x", \
+					  reimu_pivot, \
+					  reimu_position, \
+					  reimu_roation, \
+					  sprite_refresh_ms_time);
 
 	// Main loop
 	while (aptMainLoop())
 	{
-		start = osGetTime();
 		hidScanInput();
 
 		// Respond to user input
@@ -74,11 +57,11 @@ int main(int argc, char* argv[]) {
 
 		// Congfigure a sprite refresh time [ms]
 		u32 kHeld = hidKeysHeld();
-		if ((kHeld & KEY_UP) && sprite_refresh_ms_time < 1000) {
-			sprite_refresh_ms_time++;
+		if ((kHeld & KEY_UP) && reimu_object.refresh_info.refresh_time < 1000) {
+			reimu_object.refresh_info.refresh_time++;
 		}
-		if ((kHeld & KEY_DOWN) && sprite_refresh_ms_time > 3) {
-			sprite_refresh_ms_time--;
+		if ((kHeld & KEY_DOWN) && reimu_object.refresh_info.refresh_time > ANIMATION_REFRESH_TIME_MIN) {
+			reimu_object.refresh_info.refresh_time--;
 		}
 		
 		// Print debug messages on the bottom screen
@@ -86,35 +69,23 @@ int main(int argc, char* argv[]) {
 		printf("\x1b[3;1HGPU:     %6.2f%%\x1b[K", C3D_GetDrawingTime()*6.0f);
 		printf("\x1b[4;1HCmdBuf:  %6.2f%%\x1b[K", C3D_GetCmdBufUsage()*100.0f);
 
-		// Calculate elasped time [ms]
-		stop = osGetTime();
-		ms_time_elapsed += (stop - start);
+		printf("\x1b[6;1HTime elapsed:  %lld ms\x1b[K", reimu_object.refresh_info.elapsed);
+		printf("\x1b[7;1HSprite refresh time:  %lld ms\x1b[K", reimu_object.refresh_info.refresh_time);
+		printf("\x1b[8;1HNumber of sprites:  %d\x1b[K", reimu_object.frame_info.num_of_sprites);
+		printf("\x1b[9;1HObject stop time:  %lld ms\x1b[K", reimu_object.refresh_info.stop);
 
-		printf("\x1b[6;1HTime elapsed:  %lld ms\x1b[K", ms_time_elapsed);
-		printf("\x1b[7;1HSprite refresh time:  %lld ms\x1b[K", sprite_refresh_ms_time);
-
-		if (ms_time_elapsed >= sprite_refresh_ms_time) {
-			ms_time_elapsed -= sprite_refresh_ms_time;
-			
-			// Making an animation loop sprite counter
-			// This will indecate 0, 1, 2, ... 13, 0, 1, 2, ... 13, 0, ... sequentially.
-			current_frame_index = (current_frame_index + 1) % MAX_SPRITES;
-
-			// Render the scene
-			C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-			C2D_TargetClear(top, C2D_Color32f(0.0f, 0.0f, 0.0f, 1.0f));
-			C2D_SceneBegin(top);
-			
-			// Draw the player animation
-			C2D_DrawSprite(&reimu_sprite[current_frame_index]);
-		}
+		// Render the scene
+		C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+		C2D_TargetClear(top, C2D_Color32f(0.0f, 0.0f, 0.0f, 1.0f));
+		C2D_SceneBegin(top);
+		draw_sprite_animation(&reimu_object);
 
 		C3D_FrameEnd(0);
 	}
 
 	// Delete graphics
-	C2D_SpriteSheetFree(spriteSheet);
-
+	deinitialize_object(&reimu_object);
+	
 	// Deinit libs
 	C2D_Fini();
 	C3D_Fini();
