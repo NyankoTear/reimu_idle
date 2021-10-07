@@ -5,6 +5,7 @@ The 3DS models and system versions we tesetd are:
 |-|-|
 |New Nintendo 3DS LL|Sys 11.14.0-46J|
 |New Nintendo 3DS|Sys 11.15.0-47J|
+
 The Citra versions we tested are:
 |Build |Release version|
 |-|-|
