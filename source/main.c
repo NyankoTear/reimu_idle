@@ -20,7 +20,7 @@ static C2D_Sprite reimu_sprite[MAX_SPRITES];
 static sprite_pivot_t reimu_pivot = {0.0f, 0.0f};
 static sprite_position_t reimu_position = {0.0f, 0.0f};
 static float reimu_roation = 0.0f;
-static uint64_t sprite_refresh_ms_time = 30;
+static uint64_t sprite_refresh_ms_time = 33;
 
 int main(int argc, char* argv[]) 
 {
@@ -42,7 +42,8 @@ int main(int argc, char* argv[])
 					  reimu_pivot, \
 					  reimu_position, \
 					  reimu_roation, \
-					  sprite_refresh_ms_time);
+					  sprite_refresh_ms_time, \
+					  false);
 
 	// Main loop
 	while (aptMainLoop())
@@ -57,13 +58,39 @@ int main(int argc, char* argv[])
 
 		// Congfigure a sprite refresh time [ms]
 		u32 kHeld = hidKeysHeld();
-		if ((kHeld & KEY_UP) && reimu_object.refresh_info.refresh_time < 1000) {
+		if ((kHeld & KEY_A) && reimu_object.refresh_info.refresh_time < 1000) {
 			reimu_object.refresh_info.refresh_time++;
 		}
-		if ((kHeld & KEY_DOWN) && reimu_object.refresh_info.refresh_time > ANIMATION_REFRESH_TIME_MIN) {
+		if ((kHeld & KEY_B) && reimu_object.refresh_info.refresh_time > ANIMATION_REFRESH_TIME_MIN) {
 			reimu_object.refresh_info.refresh_time--;
 		}
-		
+		if (kHeld & KEY_X) {
+			reimu_object.frame_info.loop_once = true;
+		}
+		if (kHeld & KEY_Y) {
+			reimu_object.frame_info.loop_once = false;
+		}
+		if ((kHeld & KEY_LEFT)) {
+			reimu_object.position_velocity.dx = -0.4f;
+			reimu_object.position_velocity.dy = 0.0f;
+		}
+		if ((kHeld & KEY_RIGHT)) {
+			reimu_object.position_velocity.dx = 0.4f;
+			reimu_object.position_velocity.dy = 0.0f;
+		}
+		if ((kHeld & KEY_UP)) {
+			reimu_object.position_velocity.dx = 0.0f;
+			reimu_object.position_velocity.dy = -0.4f;
+		}
+		if ((kHeld & KEY_DOWN)) {
+			reimu_object.position_velocity.dx = 0.0f;
+			reimu_object.position_velocity.dy = 0.4f;
+		}
+		if (kHeld == 0) {
+			reimu_object.position_velocity.dx = 0.0f;
+			reimu_object.position_velocity.dy = 0.0f;
+		}
+
 		// Print debug messages on the bottom screen
 		printf("\x1b[2;1HCPU:     %6.2f%%\x1b[K", C3D_GetProcessingTime()*6.0f);
 		printf("\x1b[3;1HGPU:     %6.2f%%\x1b[K", C3D_GetDrawingTime()*6.0f);
@@ -71,10 +98,11 @@ int main(int argc, char* argv[])
 
 		printf("\x1b[6;1HTime elapsed:  %lld ms\x1b[K", reimu_object.refresh_info.elapsed);
 		printf("\x1b[7;1HSprite refresh time:  %lld ms\x1b[K", reimu_object.refresh_info.refresh_time);
-		printf("\x1b[8;1HNumber of sprites:  %d\x1b[K", reimu_object.frame_info.num_of_sprites);
-		printf("\x1b[9;1HObject stop time:  %lld ms\x1b[K", reimu_object.refresh_info.stop);
+		printf("\x1b[8;1HKey held:  0x%lx\x1b[K", hidKeysHeld());
+		printf("\x1b[9;1HKey down:  0x%lx\x1b[K", hidKeysDown());
 
 		// Render the scene
+		update_object(&reimu_object);
 		C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 		C2D_TargetClear(top, C2D_Color32f(0.0f, 0.0f, 0.0f, 1.0f));
 		C2D_SceneBegin(top);
