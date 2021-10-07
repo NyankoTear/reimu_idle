@@ -34,7 +34,7 @@ Follow the guidelines from the [devkitPro website](https://devkitpro.org/wiki/Ge
 Reimu sprite animation (idle)
 (Animation source: Touhou 13.5: Shinkirou - Hopeless Masquerade)
 
-<img src="doxy/image/out2.gif" width="350">
+<img src="out2.gif" width="350">
 
 - Press + key to move the object
 - Adjust the sprite animation refresh time (17ms - 1s)
